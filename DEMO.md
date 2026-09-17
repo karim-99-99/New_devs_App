@@ -2,7 +2,7 @@
 
 Use this while recording. Target length: **5–10 minutes**.
 
-**Loom URL for SOLUTION.md:** paste your new link over `REPLACE_WITH_NEW_LOOM_URL` after upload.
+**Loom URL:** https://www.loom.com/share/0be40fba49174a6089bbc711fb22617c
 
 ---
 

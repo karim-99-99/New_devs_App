@@ -504,28 +504,25 @@ export class StorageHealthChecker {
     // Try to preserve the most recent/relevant session data
     const currentSession = await supabase.auth.getSession();
     const currentUserId = currentSession.data?.session?.user?.id;
+    const preserveExact = new Set(['base360-auth-token', 'app_storage_version']);
     
     if (!currentUserId) {
-      // No current session, safe to remove all
-      keys.forEach(key => {
+      // No current session context — do NOT delete auth keys (base360-auth-token
+      // matches includes('auth') and wiping it logs the user out on refresh).
+      console.log('[StorageHealthChecker] Skipping session-conflict cleanup without active user');
+      return;
+    }
+
+    keys.forEach(key => {
+      if (preserveExact.has(key)) return;
+      if (!key.includes(currentUserId)) {
         try {
           localStorage.removeItem(key);
         } catch (error) {
           console.warn(`[StorageHealthChecker] Failed to remove conflicting session key ${key}:`, error);
         }
-      });
-    } else {
-      // Remove keys that don't belong to current user
-      keys.forEach(key => {
-        if (!key.includes(currentUserId)) {
-          try {
-            localStorage.removeItem(key);
-          } catch (error) {
-            console.warn(`[StorageHealthChecker] Failed to remove conflicting session key ${key}:`, error);
-          }
-        }
-      });
-    }
+      }
+    });
     
     console.log(`[StorageHealthChecker] Resolved session conflicts`);
   }

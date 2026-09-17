@@ -437,10 +437,14 @@ export class StorageRecoverySystem {
   private async removeCorruptedItems(): Promise<boolean> {
     try {
       let removedCount = 0;
+      const preserveExact = new Set(['base360-auth-token', 'app_storage_version', 'i18nextLng']);
       
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if (!key) continue;
+        if (preserveExact.has(key) || key.includes('supabase') || key.includes('sb-')) {
+          continue;
+        }
         
         try {
           const value = localStorage.getItem(key);
@@ -448,8 +452,13 @@ export class StorageRecoverySystem {
             JSON.parse(value); // Test if parseable
           }
         } catch (error) {
-          localStorage.removeItem(key);
-          removedCount++;
+          // Plain strings are legitimate (version markers, language). Only
+          // remove values that look like broken JSON objects/arrays.
+          const value = localStorage.getItem(key);
+          if (value && (value.startsWith('{') || value.startsWith('['))) {
+            localStorage.removeItem(key);
+            removedCount++;
+          }
         }
       }
       
@@ -563,11 +572,13 @@ export class StorageRecoverySystem {
     try {
       const currentContext = sessionManager.getCurrentContext();
       let clearedCount = 0;
+      const preserveExact = new Set(['base360-auth-token', 'app_storage_version']);
       
-      // Remove conflicting session data
+      // Remove conflicting session data — never touch the local auth token
       for (let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
         if (!key) continue;
+        if (preserveExact.has(key)) continue;
         
         if (key.includes('session') || key.includes('auth')) {
           if (currentContext) {
@@ -577,9 +588,8 @@ export class StorageRecoverySystem {
               clearedCount++;
             }
           } else {
-            // No current session, remove all session data
-            localStorage.removeItem(key);
-            clearedCount++;
+            // No namespaced context yet — do not wipe auth keys (would log out on F5)
+            continue;
           }
         }
       }

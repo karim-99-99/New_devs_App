@@ -1,8 +1,6 @@
 # Solution: Property Revenue Dashboard — Bug Investigation & Fixes
 
-**Video walkthrough (Loom):** `REPLACE_WITH_NEW_LOOM_URL`
-
-> Record a clearer 5-10 minute Loom covering: bugs found, root causes, fixes applied, and a live demo with both client logins (Sunset + Ocean). Paste the new Loom URL here before submitting. Do not keep the previous Loom link.
+**Video walkthrough (Loom):** https://www.loom.com/share/0be40fba49174a6089bbc711fb22617c
 
 For a copy-paste camera checklist (startup, credentials, before/after demos, scripts, timed outline), see **[DEMO.md](./DEMO.md)**.
 

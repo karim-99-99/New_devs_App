@@ -19,6 +19,7 @@ interface AuthSession {
 }
 
 interface AuthResponse {
+  data?: { user: AuthUser | null; session: AuthSession | null };
   user: AuthUser | null;
   session: AuthSession | null;
   error: Error | null;
@@ -104,14 +105,17 @@ class LocalAuthClient {
 
       this.saveSession(session);
 
+      // Shape matches supabase-js so AuthContext can read data.session
       return {
+        data: { user: data.user, session },
         user: data.user,
-        session: session,
+        session,
         error: null,
       };
     } catch (error: any) {
       console.error('[LocalAuth] Sign in failed:', error);
       return {
+        data: { user: null, session: null },
         user: null,
         session: null,
         error: error,
@@ -145,29 +149,41 @@ class LocalAuthClient {
   }
 
   async getSession(): Promise<{ data: { session: AuthSession | null } }> {
-    // Check if current session is still valid
-    if (this.session?.access_token) {
-      try {
-        // Verify token is still valid by calling a protected endpoint
-        const response = await fetch(`${this.getApiUrl()}/api/v1/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${this.session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          return { data: { session: this.session } };
-        } else {
-          // Session invalid, clear it
-          this.saveSession(null);
-        }
-      } catch (error) {
-        console.warn('[LocalAuth] Session validation failed:', error);
-        this.saveSession(null);
-      }
+    // Prefer the in-memory / localStorage session. Only clear it when the
+    // backend explicitly rejects the token (401/403). Network blips must not
+    // log the user out on F5 — that was wiping sessions on every refresh.
+    if (!this.session?.access_token) {
+      this.loadSession();
     }
 
-    return { data: { session: null } };
+    if (!this.session?.access_token) {
+      return { data: { session: null } };
+    }
+
+    try {
+      const response = await fetch(`${this.getApiUrl()}/api/v1/auth/me`, {
+        headers: {
+          Authorization: `Bearer ${this.session.access_token}`,
+        },
+      });
+
+      if (response.ok) {
+        return { data: { session: this.session } };
+      }
+
+      if (response.status === 401 || response.status === 403) {
+        console.warn('[LocalAuth] Session rejected by server:', response.status);
+        this.saveSession(null);
+        return { data: { session: null } };
+      }
+
+      // 5xx / unexpected — keep local session so refresh still works
+      console.warn('[LocalAuth] Session validation soft-failed:', response.status);
+      return { data: { session: this.session } };
+    } catch (error) {
+      console.warn('[LocalAuth] Session validation network error (keeping session):', error);
+      return { data: { session: this.session } };
+    }
   }
 
   async getUser(token?: string): Promise<{ user: AuthUser | null }> {
