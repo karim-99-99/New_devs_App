@@ -2,8 +2,6 @@
 
 **Video walkthrough (Loom):** https://www.loom.com/share/0be40fba49174a6089bbc711fb22617c
 
-For a copy-paste camera checklist (startup, credentials, before/after demos, scripts, timed outline), see **[DEMO.md](./DEMO.md)**.
-
 This document describes every bug found, its root cause, the fix applied, and
 how to verify each fix with the two client accounts from `ASSIGNMENT.md`.
 
